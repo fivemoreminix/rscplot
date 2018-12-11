@@ -10,19 +10,31 @@ use rsc::parser::*;
 fn main() {
     let mut buffer = String::new();
 
+    let mut reading_computations = false;
+
     loop {
-        print!("y=");
+        if reading_computations {
+            print!("y=");
+        } else {
+            print!(">");
+        }
+
         std::io::stdout().flush().unwrap();
 
         std::io::stdin().read_line(&mut buffer).unwrap();
         buffer = buffer.trim().to_owned();
 
         if &buffer[..] == "quit" || &buffer[..] == "exit" {
-            break;
+            if reading_computations {
+                reading_computations = false;
+                continue;
+            } else {
+                break;
+            }
         }
 
         let mut y_vals = Vec::<f64>::new(); // 20 values
-        for x in -10..=10 {
+        for x in (-20..=20).map(|x| x as f64 / 2.0) {
             match tokenize(&buffer) {
                 Ok(tokens) => {
                     match parse(&tokens) {
@@ -46,17 +58,14 @@ fn main() {
             }
         }
 
-        println!("x: {:?}", (-10..=10).collect::<Vec<i32>>());
+        println!("x: {:?}", (-20..=20).map(|x| x as f64 / 2.0).collect::<Vec<f64>>());
         println!("y: {:?}", y_vals);
 
         Command::new("python")
             .args(&[
                 "plotxy.py",
                 &format_numbers(
-                    &(-10..=10)
-                        .collect::<Vec<i32>>()
-                        .iter()
-                        .map(|&n| n as f64)
+                    &(-20..=20).map(|x| x as f64 / 2.0)
                         .collect::<Vec<f64>>(),
                 ),
                 &format_numbers(&y_vals),
