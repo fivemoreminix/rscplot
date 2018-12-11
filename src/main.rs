@@ -8,8 +8,6 @@ use rsc::lexer::*;
 use rsc::parser::*;
 
 fn main() {
-    let mut buffer = String::new();
-
     // Properties
     let mut x_min: f64 = -10.;
     let mut x_max: f64 = 10.;
@@ -18,6 +16,8 @@ fn main() {
     let mut reading_computations = false;
 
     loop {
+        let mut buffer = String::new();
+
         if reading_computations {
             print!("y=");
         } else {
@@ -56,36 +56,41 @@ fn main() {
                 }
             } else {
                 match &buffer[..] {
-                    "help" | "h" => println!("Commands: quit,exit,begin\nOptions: xmin=,xmax=,step="),
+                    "help" | "h" => {
+                        println!("Commands: quit,exit,begin\nOptions: xmin=,xmax=,step=")
+                    }
                     "start" | "begin" => reading_computations = true,
-                    _ => println!("Unrecognized command: try 'help'"),
+                    _ => println!("Unrecognized command {:?}: try 'help'", buffer),
                 }
             }
         } else {
             let x_vals = step_iter(x_min, x_max, step);
             let mut y_vals = Vec::<f64>::new();
 
-            for &x in &x_vals {
-                match tokenize(&buffer) {
-                    Ok(tokens) => {
-                        match parse(&tokens) {
-                            Ok(mut ast) => {
-                                ast.replace(
-                                    &Expr::Identifier(String::from("x")),
-                                    &Expr::Constant(x as f64),
-                                    false,
-                                );
-                                y_vals.push(compute(&ast));
-                            }
-                            Err(err) => {
-                                println!("Parser error: {:?}", err);
-                            }
-                        }
-                    }
+            let ast: Expr;
+            match tokenize(&buffer) {
+                Ok(tokens) => match parse(&tokens) {
+                    Ok(expr) => ast = expr,
                     Err(err) => {
-                        println!("Lexer error: {:?}", err);
+                        println!("Parser error: {:?}", err);
+                        continue;
                     }
+                },
+                Err(err) => {
+                    println!("Lexer error: {:?}", err);
+                    continue;
                 }
+            }
+            println!("ast: {:?}", &ast);
+
+            for &x in &x_vals {
+                let mut tmp = ast.clone();
+                tmp.replace(
+                    &Expr::Identifier(String::from("x")),
+                    &Expr::Constant(x as f64),
+                    false,
+                );
+                y_vals.push(compute(&tmp));
             }
 
             println!("x: {:?}", x_vals);
@@ -100,8 +105,6 @@ fn main() {
                 .spawn()
                 .expect("failed to execute process");
         }
-
-        buffer = String::new();
     }
 }
 
@@ -119,7 +122,7 @@ fn format_numbers(numbers: &[f64]) -> String {
 }
 
 fn step_iter(min: f64, max: f64, step: f64) -> Vec<f64> {
-    let mut items = vec!(min);
+    let mut items = vec![min];
     let mut n = min;
     while n + step <= max {
         n += step;
