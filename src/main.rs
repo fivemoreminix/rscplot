@@ -10,6 +10,11 @@ use rsc::parser::*;
 fn main() {
     let mut buffer = String::new();
 
+    // Properties
+    let mut x_min: f64 = -10.;
+    let mut x_max: f64 = 10.;
+    let mut step: f64 = 0.5;
+
     let mut reading_computations = false;
 
     loop {
@@ -33,45 +38,68 @@ fn main() {
             }
         }
 
-        let mut y_vals = Vec::<f64>::new(); // 20 values
-        for x in (-20..=20).map(|x| x as f64 / 2.0) {
-            match tokenize(&buffer) {
-                Ok(tokens) => {
-                    match parse(&tokens) {
-                        Ok(mut ast) => {
-                            ast.replace(
-                                &Expr::Identifier(String::from("x")),
-                                &Expr::Constant(x as f64),
-                                false,
-                            );
-                            y_vals.push(compute(&ast));
-                            //println!("{}", compute(&ast));
-                        }
-                        Err(err) => {
-                            println!("Parser error: {:?}", err);
-                        }
-                    }
+        if !reading_computations {
+            if buffer.starts_with("xmin=") {
+                match rsc::eval(&buffer[5..]) {
+                    Ok(val) => x_min = val,
+                    Err(e) => println!("Failed to set xmin: {:?}", e),
                 }
-                Err(err) => {
-                    println!("Lexer error: {:?}", err);
+            } else if buffer.starts_with("xmax=") {
+                match rsc::eval(&buffer[5..]) {
+                    Ok(val) => x_max = val,
+                    Err(e) => println!("Failed to set xmax: {:?}", e),
+                }
+            } else if buffer.starts_with("step=") {
+                match rsc::eval(&buffer[5..]) {
+                    Ok(val) => step = val,
+                    Err(e) => println!("Failed to set step: {:?}", e),
+                }
+            } else {
+                match &buffer[..] {
+                    "help" | "h" => println!("Commands: quit,exit,begin\nOptions: xmin=,xmax=,step="),
+                    "start" | "begin" => reading_computations = true,
+                    _ => println!("Unrecognized command: try 'help'"),
                 }
             }
+        } else {
+            let x_vals = step_iter(x_min, x_max, step);
+            let mut y_vals = Vec::<f64>::new();
+
+            for &x in &x_vals {
+                match tokenize(&buffer) {
+                    Ok(tokens) => {
+                        match parse(&tokens) {
+                            Ok(mut ast) => {
+                                ast.replace(
+                                    &Expr::Identifier(String::from("x")),
+                                    &Expr::Constant(x as f64),
+                                    false,
+                                );
+                                y_vals.push(compute(&ast));
+                            }
+                            Err(err) => {
+                                println!("Parser error: {:?}", err);
+                            }
+                        }
+                    }
+                    Err(err) => {
+                        println!("Lexer error: {:?}", err);
+                    }
+                }
+            }
+
+            println!("x: {:?}", x_vals);
+            println!("y: {:?}", y_vals);
+
+            Command::new("python")
+                .args(&[
+                    "plotxy.py",
+                    &format_numbers(&x_vals),
+                    &format_numbers(&y_vals),
+                ])
+                .spawn()
+                .expect("failed to execute process");
         }
-
-        println!("x: {:?}", (-20..=20).map(|x| x as f64 / 2.0).collect::<Vec<f64>>());
-        println!("y: {:?}", y_vals);
-
-        Command::new("python")
-            .args(&[
-                "plotxy.py",
-                &format_numbers(
-                    &(-20..=20).map(|x| x as f64 / 2.0)
-                        .collect::<Vec<f64>>(),
-                ),
-                &format_numbers(&y_vals),
-            ])
-            .spawn()
-            .expect("failed to execute process");
 
         buffer = String::new();
     }
@@ -88,4 +116,14 @@ fn format_numbers(numbers: &[f64]) -> String {
         }
     }
     out
+}
+
+fn step_iter(min: f64, max: f64, step: f64) -> Vec<f64> {
+    let mut items = vec!(min);
+    let mut n = min;
+    while n + step <= max {
+        n += step;
+        items.push(n);
+    }
+    items
 }
