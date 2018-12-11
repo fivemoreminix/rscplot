@@ -56,9 +56,7 @@ fn main() {
                 }
             } else {
                 match &buffer[..] {
-                    "help" | "h" => {
-                        println!("Commands: quit,exit,begin\nOptions: xmin=,xmax=,step=")
-                    }
+                    "help" | "h" => println!("Commands: quit,begin\nOptions: xmin=,xmax=,step=\nNote: You can return from `begin` by using `exit` or `quit` commands in 'y=' mode."),
                     "start" | "begin" => reading_computations = true,
                     _ => println!("Unrecognized command {:?}: try 'help'", buffer),
                 }
