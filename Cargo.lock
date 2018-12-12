@@ -1,14 +1,14 @@
 [[package]]
 name = "rsc"
-version = "1.0.0"
-source = "git+https://github.com/asmoaesl/rsc.git#e35be640f40db02f1076b7f11d9e4efe78823445"
+version = "1.2.0"
+source = "git+https://github.com/asmoaesl/rsc.git#33b91a3eb6a4596fa7075b3cec86bc4243aab4c4"
 
 [[package]]
 name = "rscplot"
 version = "0.1.0"
 dependencies = [
- "rsc 1.0.0 (git+https://github.com/asmoaesl/rsc.git)",
+ "rsc 1.2.0 (git+https://github.com/asmoaesl/rsc.git)",
 ]
 
 [metadata]
-"checksum rsc 1.0.0 (git+https://github.com/asmoaesl/rsc.git)" = "<none>"
+"checksum rsc 1.2.0 (git+https://github.com/asmoaesl/rsc.git)" = "<none>"

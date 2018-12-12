@@ -12,10 +12,12 @@ fn main() {
     let mut x_min: f64 = -10.;
     let mut x_max: f64 = 10.;
     let mut step: f64 = 0.5;
+    let mut print_ast = cfg!(debug_assertions);
+    let mut print_data = false;
 
     let mut reading_computations = false;
 
-    loop {
+    'main: loop {
         let mut buffer = String::new();
 
         if reading_computations {
@@ -54,9 +56,21 @@ fn main() {
                     Ok(val) => step = val,
                     Err(e) => println!("Failed to set step: {:?}", e),
                 }
+            } else if buffer.starts_with("ast=") {
+                match buffer[4..].to_lowercase().as_str() {
+                    "true" => print_ast = true,
+                    "false" => print_ast = false,
+                    _ => println!("Invalid option for ast: {:?}", &buffer[4..]),
+                }
+            } else if buffer.starts_with("data=") {
+                match buffer[5..].to_lowercase().as_str() {
+                    "true" => print_data = true,
+                    "false" => print_data = false,
+                    _ => println!("Invalid option for data: {:?}", &buffer[5..]),
+                }
             } else {
                 match &buffer[..] {
-                    "help" | "h" => println!("Commands: quit,begin\nOptions: xmin=,xmax=,step=\nNote: You can return from `begin` by using `exit` or `quit` commands in 'y=' mode."),
+                    "help" | "h" => println!("Commands: quit,begin\nOptions: xmin=,xmax=,step=,ast=<true/false>,data=<true/false>\nNote: You can return from `begin` by using `exit` or `quit` commands in 'y=' mode."),
                     "start" | "begin" => reading_computations = true,
                     _ => println!("Unrecognized command {:?}: try 'help'", buffer),
                 }
@@ -79,7 +93,10 @@ fn main() {
                     continue;
                 }
             }
-            println!("ast: {:?}", &ast);
+
+            if print_ast {
+                println!("ast: {:?}", &ast);
+            }
 
             for &x in &x_vals {
                 let mut tmp = ast.clone();
@@ -88,11 +105,19 @@ fn main() {
                     &Expr::Constant(x as f64),
                     false,
                 );
-                y_vals.push(compute(&tmp));
+                match compute(&tmp) {
+                    Ok(num) => y_vals.push(num),
+                    Err(err) => {
+                        println!("Compute error: {:?}", err);
+                        continue 'main;
+                    }
+                }
             }
 
-            println!("x: {:?}", x_vals);
-            println!("y: {:?}", y_vals);
+            if print_data {
+                println!("x: {:?}", x_vals);
+                println!("y: {:?}", y_vals);
+            }
 
             Command::new("python")
                 .args(&[
